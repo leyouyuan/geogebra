@@ -219,6 +219,9 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 
 		// no midpoint, detS == 0
 
+		// set eigenvalues
+		eigenval = findEigenvaluesApache(matrix);
+
 		// Log.debug("eigenvals = " + eigenval[0] + "," + eigenval[1] + ","
 		// + eigenval[2]);
 
