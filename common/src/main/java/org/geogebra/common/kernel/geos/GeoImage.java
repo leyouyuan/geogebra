@@ -279,7 +279,7 @@ public class GeoImage extends GeoElement implements Locateable,
 		setImageFileName(fileName, myImage);
 	}
 
-	public void setImageFileName(String fileName, MyImage myImage) {
+	private void setImageFileName(String fileName, MyImage myImage) {
 		this.getGraphicsAdapter().setImageFileNameOnly(fileName);
 
 		this.getGraphicsAdapter().setImageOnly(myImage);
