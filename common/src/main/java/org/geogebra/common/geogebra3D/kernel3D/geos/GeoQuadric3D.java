@@ -218,10 +218,6 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 	private void classifyNoMidpointQuadric() {
 
 		// no midpoint, detS == 0
-
-		// set eigenvalues
-		eigenval = findEigenvaluesApache(matrix);
-
 		// Log.debug("eigenvals = " + eigenval[0] + "," + eigenval[1] + ","
 		// + eigenval[2]);
 
@@ -781,8 +777,6 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 				- matrix[4] * matrix[6] * matrix[7]) / detS;
 		double[] coords = { x, y, z, 1 };
 		setMidpoint(coords);
-
-		eigenval = findEigenvalues(matrix);
 
 		// degenerate ? (beta is det of 4x4 matrix)
 		double beta = matrix[7] * x + matrix[8] * y + matrix[9] * z + matrix[3];
