@@ -1,6 +1,7 @@
 package org.geogebra.common.geogebra3D.kernel3D.geos;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.apache.commons.math3.linear.EigenDecomposition;
 import org.apache.commons.math3.linear.MatrixUtils;
@@ -204,6 +205,7 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 				+ 2 * matrix[4] * matrix[5] * matrix[6];
 
 		double v =  max * max * max;
+		eigenval = findEigenvalues(matrix);
 
 		if (DoubleUtil.isEpsilonWithPrecision(detS, v, Kernel.STANDARD_PRECISION_CUBE)) {
 			classifyNoMidpointQuadric();
@@ -216,9 +218,6 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 	private void classifyNoMidpointQuadric() {
 
 		// no midpoint, detS == 0
-
-		// set eigenvalues
-		eigenval = findEigenvaluesApache(matrix);
 
 		// Log.debug("eigenvals = " + eigenval[0] + "," + eigenval[1] + ","
 		// + eigenval[2]);
@@ -255,13 +254,13 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 
 			if (DoubleUtil.isRatioEqualTo1(eigenval[0], eigenval[1])) {
 				// find from eigenvalue = 0, since both others are equal
-				findEigenvectorApache(2, eigenvecND[2]);
+				findEigenvector(eigenval[2], eigenvecND[2]);
 				eigenvecND[2].normalize();
 				eigenvecND[2].completeOrthonormal(eigenvecND[0], eigenvecND[1]);
 			} else {
-				findEigenvectorApache(0, eigenvecND[0]);
+				findEigenvector(eigenval[0], eigenvecND[0]);
 				eigenvecND[0].normalize();
-				findEigenvectorApache(1, eigenvecND[1]);
+				findEigenvector(eigenval[1], eigenvecND[1]);
 				eigenvecND[1].normalize();
 				eigenvecND[2].setCrossProduct4(eigenvecND[0], eigenvecND[1]);
 			}
@@ -379,14 +378,9 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 
 	private void swapEigens(int i, int j, double[] array) {
 		double tmpVal;
-		double[] tmpVec;
 		tmpVal = array[i];
 		array[i] = array[j];
 		array[j] = tmpVal;
-
-		tmpVec = eigenvectors[i];
-		eigenvectors[i] = eigenvectors[j];
-		eigenvectors[j] = tmpVec;
 	}
 
 	private void paraboloid(double x, double y, double z, double m) {
@@ -433,35 +427,7 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 		type = GeoQuadricNDConstants.QUADRIC_LINE;
 	}
 
-	private void findEigenvector(double value, Coords ret) {
-		if (tmpMatrix3x3 == null) {
-			tmpMatrix3x3 = new CoordMatrix(3, 3);
-		}
-
-		tmpMatrix3x3.set(1, 1, matrix[0] - value);
-		tmpMatrix3x3.set(2, 2, matrix[1] - value);
-		tmpMatrix3x3.set(3, 3, matrix[2] - value);
-
-		tmpMatrix3x3.set(1, 2, matrix[4]);
-		tmpMatrix3x3.set(2, 1, matrix[4]);
-		tmpMatrix3x3.set(1, 3, matrix[5]);
-		tmpMatrix3x3.set(3, 1, matrix[5]);
-		tmpMatrix3x3.set(2, 3, matrix[6]);
-		tmpMatrix3x3.set(3, 2, matrix[6]);
-
-		// Log.debug("\n=================================\nvalue = " + value);
-
-		ret.setX(0);
-		ret.setY(0);
-		ret.setZ(0);
-		ret.setW(0);
-		tmpMatrix3x3.pivotDegenerate(ret, Coords.ZERO);
-
-		// Log.debug("\nvalue = " + value + "\nmatrix = \n" + tmpMatrix3x3
-		// + "\nsol = \n" + ret);
-	}
-
-	private double[] findEigenvaluesApache(double[] matrix) {
+	private double[] findEigenvalues(double[] matrix) {
 		double[][] mat2d = new double[3][3];
 		mat2d[0][0] = matrix[0];
 		mat2d[1][1] = matrix[1];
@@ -478,21 +444,22 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 
 		RealMatrix apacheMatrix = MatrixUtils.createRealMatrix(mat2d);
 		decomp = new EigenDecomposition(apacheMatrix);
-		eigenval = decomp.getRealEigenvalues();
+		double[] apacheEigenvals = decomp.getRealEigenvalues();
 
-		for (int i = 0; i < 3; i++) {
-			eigenvectors[i] = decomp.getEigenvector(i).toArray();
-		}
-		arrangeEigens(eigenval);
+		arrangeEigens(apacheEigenvals);
 
-		return eigenval;
+		return apacheEigenvals;
 	}
 
-	private void findEigenvectorApache(int i, Coords ret) {
-		if (decomp == null) {
-			findEigenvaluesApache(matrix);
+
+	private void findEigenvector(double val, Coords ret) {
+		findEigenvectors();
+		for (int i=0; i<eigenval.length; i++) {
+			double diff = Math.abs(eigenval[i] - val);
+			if (diff < Kernel.STANDARD_PRECISION) {
+				ret.set(eigenvec[i]);
+			}
 		}
-		ret.set(new Coords(eigenvectors[i]));
 	}
 
 	/**
@@ -536,11 +503,11 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 		semiDiagMatrix.setMul(tmpMatrix4x4, eigenvecNDMatrix);
 	}
 
-	private void twoZeroEigenvalues(double value) {
+	private void twoZeroEigenvalues(double val) {
 
 		// get main eigenvector
 		tmpCoords.setValues(eigenvecND[2], 3);
-		findEigenvector(value, eigenvecND[2]);
+		findEigenvector(val, eigenvecND[2]);
 		eigenvecND[2].normalize();
 		if (tmpCoords.dotproduct3(eigenvecND[2]) < 0) {
 			eigenvecND[2].mulInside3(-1);
@@ -557,15 +524,15 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 		if (!DoubleUtil.isZero(semiDiagMatrix.get(1, 4))
 				|| !DoubleUtil.isZero(semiDiagMatrix.get(2, 4))) {
 			// parabolic cylinder
-			parabolicCylinder(value);
+			parabolicCylinder(val);
 		} else {
 			// parallel planes or empty
 			double a = semiDiagMatrix.get(3, 4);
 			double b = semiDiagMatrix.get(4, 4);
 
 			// get case
-			double c = a / value;
-			double m = c * c - b / value;
+			double c = a / val;
+			double m = c * c - b / val;
 			if (DoubleUtil.isZero(m)) {
 				parallelPlanes(0, c);
 			} else if (m > 0) {
@@ -812,27 +779,7 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 		double[] coords = { x, y, z, 1 };
 		setMidpoint(coords);
 
-		// Log.debug("\nmidpoint = " + x + "," + y + "," + z);
-
-		// set eigenvalues
-		eigenval[0] = detS;
-		eigenval[1] = -matrix[0] * matrix[1] - matrix[1] * matrix[2]
-				- matrix[2] * matrix[0] + matrix[4] * matrix[4]
-				+ matrix[5] * matrix[5] + matrix[6] * matrix[6];
-		eigenval[2] = matrix[0] + matrix[1] + matrix[2];
-		eigenval[3] = -1;
-
-		int nRoots = EquationSolver.solveCubicS(eigenval,
-				eigenval, Kernel.STANDARD_PRECISION);
-
-		if (nRoots == 1) {
-			eigenval[1] = eigenval[0];
-			nRoots++;
-		}
-
-		if (nRoots == 2) {
-			eigenval[2] = eigenval[1];
-		}
+		eigenval = findEigenvalues(matrix);
 
 		// degenerate ? (beta is det of 4x4 matrix)
 		double beta = matrix[7] * x + matrix[8] * y + matrix[9] * z + matrix[3];
@@ -868,10 +815,10 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 						}
 					} else { // xx-yy+zz=-beta
 						if (beta > 0) { // yy-zz-xx=1
-							hyperboloidTwoSheets(eigenval[1], eigenval[2],
+							hyperboloidOneSheet(eigenval[1], eigenval[2],
 									eigenval[0], beta);
 						} else { // zz+xx-yy=1
-							hyperboloidOneSheet(eigenval[2], eigenval[0],
+							hyperboloidTwoSheets(eigenval[0], eigenval[2],
 									eigenval[1], beta);
 						}
 					}
