@@ -1,7 +1,6 @@
 package org.geogebra.common.geogebra3D.kernel3D.geos;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import org.apache.commons.math3.linear.EigenDecomposition;
 import org.apache.commons.math3.linear.MatrixUtils;
@@ -74,8 +73,6 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 	protected double[] tmpDouble2 = new double[2];
 	private double detS;
 
-	private CoordMatrix tmpMatrix3x3;
-
 	private GeoPlane3D[] planes;
 
 	private GeoLine3D line;
@@ -103,7 +100,6 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 	private boolean showUndefinedInAlgebraView = false;
 	private Coords tmpCoords6;
 	private EigenDecomposition decomp;
-	private double[][] eigenvectors = new double[3][3];
 
 	/**
 	 * @param c
@@ -450,10 +446,9 @@ public class GeoQuadric3D extends GeoQuadricND implements Functional2Var,
 		return apacheEigenvals;
 	}
 
-
 	private void findEigenvector(double val, Coords ret) {
 		findEigenvectors();
-		for (int i=0; i<eigenval.length; i++) {
+		for (int i = 0; i < eigenval.length; i++) {
 			double diff = Math.abs(eigenval[i] - val);
 			if (diff < Kernel.STANDARD_PRECISION) {
 				ret.set(eigenvec[i]);
